@@ -22,14 +22,12 @@ namespace nvn
 
         inline vector_t<T, N> operator()(const vector_t<T, N> &p_des)
         {
-            const T dt = static_cast<T>(1) / static_cast<T>(f);
-
             const auto p = read_p();
             const auto p_err = p_des - p;
-            const auto dp_err = (p_err - p_err_prev) / dt;
+            const auto dp_err = (p_err - p_err_prev) * f;
 
             p_err_prev = p_err;
-            p_err_intg += p_err * dt;
+            p_err_intg += p_err / f;
 
             vector_t<T, N> u;
             u.noalias() = Kp.cwiseProduct(p_err) + Kd.cwiseProduct(dp_err) + Ki.cwiseProduct(p_err_intg);
@@ -53,14 +51,12 @@ namespace nvn
 
         inline T operator()(T p_des)
         {
-            const T dt = static_cast<T>(1) / static_cast<T>(f);
-
             const T p = read_p();
             const T p_err = p_des - p;
-            const T dp_err = (p_err - p_err_prev) / dt;
+            const T dp_err = (p_err - p_err_prev) * f;
 
             p_err_prev = p_err;
-            p_err_intg += p_err * dt;
+            p_err_intg += p_err / f;
 
             return Kp * p_err + Kd * dp_err + Ki * p_err_intg;
         }
