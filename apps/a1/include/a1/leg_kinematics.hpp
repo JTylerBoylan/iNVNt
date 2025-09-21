@@ -93,13 +93,12 @@ namespace a1
         scalar_t ax = 1.0; // +1 for right leg, -1 for left leg
         meters_t ls, lt, lc;
 
-        template <typename RQ>
-        explicit A1_ComputeJacobian(RQ &&q,
+        explicit A1_ComputeJacobian(ReadQ q,
                                     bool is_right_leg = true,
                                     meters_t shoulder_link_length = 0.08505,
                                     meters_t thigh_link_length = 0.2,
                                     meters_t calf_link_length = 0.2)
-            : read_q(std::forward<RQ>(q)),
+            : read_q(q),
               ax(is_right_leg ? -1.0 : +1.0),
               ls(shoulder_link_length), lt(thigh_link_length), lc(calf_link_length) {}
 

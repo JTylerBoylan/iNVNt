@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/apps/a1/test_ik_control",
+            "program": "${workspaceFolder}/build/apps/a1/unitreea1_mujoco",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

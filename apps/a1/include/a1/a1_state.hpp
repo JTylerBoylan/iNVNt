@@ -86,8 +86,8 @@ namespace a1
 
     using A1_ReadLegJointPositions = mj::ReadJointPositions<A1_NUM_JOINTS_PER_LEG>;
     using A1_ReadLegJointVelocities = mj::ReadJointVelocities<A1_NUM_JOINTS_PER_LEG>;
-    using A1_ReadLegPosition = A1_ComputeForwardKinematics<A1_ReadLegJointPositions>;
-    using A1_ReadJacobian3D = A1_ComputeJacobian<A1_ReadLegJointPositions>;
+    using A1_ReadLegPosition = A1_ComputeForwardKinematics<A1_ReadLegJointPositions&>;
+    using A1_ReadJacobian3D = A1_ComputeJacobian<A1_ReadLegJointPositions&>;
     struct A1_LegState
     {
         A1_ReadLegJointPositions joint_positions;

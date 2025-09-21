@@ -10,9 +10,8 @@ namespace nvn
     {
         ReadJ read_J;
 
-        template <typename RJ>
-        explicit JacobianMap(RJ &&jac)
-            : read_J(std::forward<RJ>(jac)) {}
+        explicit JacobianMap(ReadJ jac)
+            : read_J(jac) {}
 
         inline auto operator()(const Eigen::Ref<const vector_t<T, M>> &vec) const
             -> vector_t<T, N>
