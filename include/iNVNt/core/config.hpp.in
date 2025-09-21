@@ -1,0 +1,2 @@
+#pragma once
+#define INVNT_SHARE_DIR "@CMAKE_BINARY_DIR@/share"
