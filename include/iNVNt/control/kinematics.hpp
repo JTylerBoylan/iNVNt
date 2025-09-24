@@ -4,27 +4,17 @@
 
 namespace nvn
 {
-    template <typename T, int M, int N, typename ReadJ>
-        requires JacobianReader<ReadJ, M, N>
+    template <typename ReadJ>
     struct JacobianMap
     {
-        ReadJ read_J;
+        ReadJ &read_J;
 
-        explicit JacobianMap(ReadJ jac)
-            : read_J(jac) {}
+        explicit JacobianMap(ReadJ &jac) : read_J(jac) {}
 
-        inline auto operator()(const Eigen::Ref<const vector_t<T, M>> &vec) const
-            -> vector_t<T, N>
+        template <typename T>
+        inline auto operator()(const T &vec)
         {
-            vector_t<T, N> out;
-            out.noalias() = read_J().transpose() * vec;
-            return out;
+            return read_J().transpose() * vec;
         }
     };
-
-    template <typename T, int M, int N, typename ReadJ>
-    JacobianMap(ReadJ &&J) -> JacobianMap<T, M, N, ReadJ>;
-
-    template <typename T, int M, int N, JacobianReader<M, N> ReadJ, VectorWriter<T, N> SetT, typename... Args>
-    using SetForce = Chain<JacobianMap<T, M, N, ReadJ>, SetT>;
 }

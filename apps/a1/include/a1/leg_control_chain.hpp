@@ -5,8 +5,8 @@
 
 namespace a1
 {
-    using A1_JacobianMap = JacobianMap<scalar_t, 3, 3, A1_ReadJacobian3D &>;
-    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadLegPosition>;
+    using A1_JacobianMap = JacobianMap<A1_ReadToeJacobian3D>;
+    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadToePosition>;
 
     inline auto make_leg_control_chain(A1_State &state, A1_Control &control,
                                        A1_LegID leg_id,
@@ -16,12 +16,12 @@ namespace a1
                                        const vector_t<scalar_t, 3> &Ki)
     {
         // In: force -> Out: torques
-        auto jac_map = A1_JacobianMap(state.legs[leg_id].jacobian);
+        auto jac_map = A1_JacobianMap(state.legs[leg_id].toe_jacobian);
         // In: force -> Out: ()
         auto set_force = Chain(std::move(jac_map), std::ref(control.legs[leg_id].joint_torques));
 
         // In: setpoint -> Out: force
-        auto leg_pid_compute = A1_LegPID_Compute(state.legs[leg_id].position, freq, Kp, Kd, Ki);
+        auto leg_pid_compute = A1_LegPID_Compute(state.legs[leg_id].toe_position, freq, Kp, Kd, Ki);
         // In: () -> Out: force
         auto leg_pid = Chain(std::ref(control.legs[leg_id].position_setpoint), std::move(leg_pid_compute));
 

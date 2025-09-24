@@ -7,26 +7,20 @@ namespace a1
 {
     using namespace nvn;
 
-    template <typename ReadQ>
-        requires VectorReader<ReadQ, radians_t, 3>
-    struct A1_ComputeForwardKinematics
+    struct ComputeForwardKinematics
     {
-        ReadQ read_q;
         scalar_t ax = 1.0; // +1 for right leg, -1 for left leg
         meters_t ls, lt, lc;
 
-        template <typename RQ>
-        A1_ComputeForwardKinematics(RQ &&q, bool is_right_leg = true,
-                                    meters_t shoulder_link_length = 0.08505,
-                                    meters_t thigh_link_length = 0.2,
-                                    meters_t calf_link_length = 0.2)
-            : read_q(std::forward<RQ>(q)),
-              ax(is_right_leg ? -1.0 : +1.0),
+        ComputeForwardKinematics(bool is_right_leg = true,
+                                 meters_t shoulder_link_length = 0.08505,
+                                 meters_t thigh_link_length = 0.2,
+                                 meters_t calf_link_length = 0.2)
+            : ax(is_right_leg ? -1.0 : +1.0),
               ls(shoulder_link_length), lt(thigh_link_length), lc(calf_link_length) {}
 
-        inline translation3d_t operator()() const noexcept
+        inline translation3d_t operator()(const vector_t<radians_t, 3> &q) const noexcept
         {
-            const auto q = read_q();
             const float q1 = q[0];
             const float q2 = q[1];
             const float q3 = q[2];
@@ -47,15 +41,15 @@ namespace a1
         }
     };
 
-    struct A1_ComputeInverseKinematics
+    struct ComputeInverseKinematics
     {
         scalar_t ax = 1.0; // +1 for right leg, -1 for left leg
         meters_t ls, lt, lc;
 
-        A1_ComputeInverseKinematics(bool is_right_leg = true,
-                                    meters_t shoulder_link_length = 0.08505,
-                                    meters_t thigh_link_length = 0.2,
-                                    meters_t calf_link_length = 0.2)
+        ComputeInverseKinematics(bool is_right_leg = true,
+                                 meters_t shoulder_link_length = 0.08505,
+                                 meters_t thigh_link_length = 0.2,
+                                 meters_t calf_link_length = 0.2)
             : ax(is_right_leg ? -1.0 : +1.0),
               ls(shoulder_link_length), lt(thigh_link_length), lc(calf_link_length) {}
         inline vector_t<radians_t, 3> operator()(const translation3d_t &position) const noexcept
@@ -85,26 +79,20 @@ namespace a1
         }
     };
 
-    template <typename ReadQ>
-        requires VectorReader<ReadQ, radians_t, 3>
-    struct A1_ComputeJacobian
+    struct ComputeJacobian
     {
-        ReadQ read_q;
         scalar_t ax = 1.0; // +1 for right leg, -1 for left leg
         meters_t ls, lt, lc;
 
-        explicit A1_ComputeJacobian(ReadQ q,
-                                    bool is_right_leg = true,
-                                    meters_t shoulder_link_length = 0.08505,
-                                    meters_t thigh_link_length = 0.2,
-                                    meters_t calf_link_length = 0.2)
-            : read_q(q),
-              ax(is_right_leg ? -1.0 : +1.0),
+        explicit ComputeJacobian(bool is_right_leg = true,
+                                 meters_t shoulder_link_length = 0.08505,
+                                 meters_t thigh_link_length = 0.2,
+                                 meters_t calf_link_length = 0.2)
+            : ax(is_right_leg ? -1.0 : +1.0),
               ls(shoulder_link_length), lt(thigh_link_length), lc(calf_link_length) {}
 
-        inline jacobian3d_t operator()() const
+        inline jacobian3d_t operator()(const vector_t<radians_t, 3> &q) const noexcept
         {
-            const auto q = read_q();
             const radians_t abduction = q[0];
             const radians_t hip = q[1];
             const radians_t knee = q[2];
@@ -133,6 +121,45 @@ namespace a1
                 dYdq1, dYdq2, dYdq3,
                 dZdq1, dZdq2, dZdq3;
             return jac;
+        }
+    };
+
+    template <typename ReadQ>
+    struct ReadToePosition
+    {
+        ReadQ read_q;
+        ComputeForwardKinematics compute_fk;
+
+        ReadToePosition(ReadQ q, bool is_right_leg = true,
+                        meters_t shoulder_link_length = 0.08505,
+                        meters_t thigh_link_length = 0.2,
+                        meters_t calf_link_length = 0.2)
+            : read_q(q),
+              compute_fk(is_right_leg, shoulder_link_length, thigh_link_length, calf_link_length) {}
+
+        inline translation3d_t operator()() const noexcept
+        {
+            return compute_fk(read_q());
+        }
+    };
+
+    template <typename ReadQ>
+    struct ReadToeJacobian
+    {
+        ReadQ read_q;
+        ComputeJacobian compute_jac;
+
+        explicit ReadToeJacobian(ReadQ q,
+                                 bool is_right_leg = true,
+                                 meters_t shoulder_link_length = 0.08505,
+                                 meters_t thigh_link_length = 0.2,
+                                 meters_t calf_link_length = 0.2)
+            : read_q(q),
+              compute_jac(is_right_leg, shoulder_link_length, thigh_link_length, calf_link_length) {}
+
+        inline jacobian3d_t operator()() const
+        {
+            return compute_jac(read_q());
         }
     };
 }

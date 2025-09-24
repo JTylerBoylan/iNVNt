@@ -14,32 +14,32 @@ int main(int argc, char **argv)
     auto Kd = vector_t<scalar_t, 3>::Constant(10.0);
     auto Ki = vector_t<scalar_t, 3>::Constant(1.0);
 
-    using A1_JacobianMap = JacobianMap<scalar_t, 3, 3, A1_ReadJacobian3D&>;
-    auto jac_map_fr = A1_JacobianMap(a1.state.legs[FR].jacobian);
-    auto jac_map_fl = A1_JacobianMap(a1.state.legs[FL].jacobian);
-    auto jac_map_rr = A1_JacobianMap(a1.state.legs[RR].jacobian);
-    auto jac_map_rl = A1_JacobianMap(a1.state.legs[RL].jacobian);
+    using A1_JacobianMap = JacobianMap<A1_ReadToeJacobian3D &>;
+    auto jac_map_fr = A1_JacobianMap(a1.state.legs[FR].toe_jacobian);
+    auto jac_map_fl = A1_JacobianMap(a1.state.legs[FL].toe_jacobian);
+    auto jac_map_rr = A1_JacobianMap(a1.state.legs[RR].toe_jacobian);
+    auto jac_map_rl = A1_JacobianMap(a1.state.legs[RL].toe_jacobian);
 
     auto set_force_fr = Chain(std::ref(jac_map_fr), std::ref(a1.control.legs[FR].joint_torques));
     auto set_force_fl = Chain(std::ref(jac_map_fl), std::ref(a1.control.legs[FL].joint_torques));
     auto set_force_rr = Chain(std::ref(jac_map_rr), std::ref(a1.control.legs[RR].joint_torques));
     auto set_force_rl = Chain(std::ref(jac_map_rl), std::ref(a1.control.legs[RL].joint_torques));
 
-    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadLegPosition>;
-    auto leg_pid_fr = A1_LegPID_Compute(a1.state.legs[FR].position, freq, Kp, Kd, Ki);
-    auto leg_pid_fl = A1_LegPID_Compute(a1.state.legs[FL].position, freq, Kp, Kd, Ki);
-    auto leg_pid_rr = A1_LegPID_Compute(a1.state.legs[RR].position, freq, Kp, Kd, Ki);
-    auto leg_pid_rl = A1_LegPID_Compute(a1.state.legs[RL].position, freq, Kp, Kd, Ki);
+    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadToePosition>;
+    auto leg_pid_fr = A1_LegPID_Compute(a1.state.legs[FR].toe_position, freq, Kp, Kd, Ki);
+    auto leg_pid_fl = A1_LegPID_Compute(a1.state.legs[FL].toe_position, freq, Kp, Kd, Ki);
+    auto leg_pid_rr = A1_LegPID_Compute(a1.state.legs[RR].toe_position, freq, Kp, Kd, Ki);
+    auto leg_pid_rl = A1_LegPID_Compute(a1.state.legs[RL].toe_position, freq, Kp, Kd, Ki);
 
     auto set_leg_pos_fr = Chain(leg_pid_fr, set_force_fr);
     auto set_leg_pos_fl = Chain(leg_pid_fl, set_force_fl);
     auto set_leg_pos_rr = Chain(leg_pid_rr, set_force_rr);
     auto set_leg_pos_rl = Chain(leg_pid_rl, set_force_rl);
 
-    auto osc_control_fr = Chain(std::ref(a1.control.legs[FR].position_setpoint), set_leg_pos_fr);
-    auto osc_control_fl = Chain(std::ref(a1.control.legs[FL].position_setpoint), set_leg_pos_fl);
-    auto osc_control_rr = Chain(std::ref(a1.control.legs[RR].position_setpoint), set_leg_pos_rr);
-    auto osc_control_rl = Chain(std::ref(a1.control.legs[RL].position_setpoint), set_leg_pos_rl);
+    auto osc_control_fr = Chain(std::ref(a1.controllers.toe_ctrl[FR].pos_setpoint), set_leg_pos_fr);
+    auto osc_control_fl = Chain(std::ref(a1.controllers.toe_ctrl[FL].pos_setpoint), set_leg_pos_fl);
+    auto osc_control_rr = Chain(std::ref(a1.controllers.toe_ctrl[RR].pos_setpoint), set_leg_pos_rr);
+    auto osc_control_rl = Chain(std::ref(a1.controllers.toe_ctrl[RL].pos_setpoint), set_leg_pos_rl);
 
     a1.log << "Launching MuJoCo (Model: " << path << ")\n";
     if (mj::mjLoadModel(path) && mj::mjOpenWindow())
@@ -55,10 +55,10 @@ int main(int argc, char **argv)
 
             translation3d_t toe_position_left = {0.0, A1_LS, z_pos};
             translation3d_t toe_position_right = {0.0, -A1_LS, z_pos};
-            a1.control.legs[FR].position_setpoint(toe_position_right);
-            a1.control.legs[FL].position_setpoint(toe_position_left);
-            a1.control.legs[RR].position_setpoint(toe_position_right);
-            a1.control.legs[RL].position_setpoint(toe_position_left);
+            a1.controllers.toe_ctrl[FR].pos_setpoint(toe_position_right);
+            a1.controllers.toe_ctrl[FL].pos_setpoint(toe_position_left);
+            a1.controllers.toe_ctrl[RR].pos_setpoint(toe_position_right);
+            a1.controllers.toe_ctrl[RL].pos_setpoint(toe_position_left);
 
             // Run OSC
             osc_control_fr();

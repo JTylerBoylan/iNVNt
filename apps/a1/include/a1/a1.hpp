@@ -2,6 +2,8 @@
 
 #include "a1/a1_types.hpp"
 #include "a1/a1_state.hpp"
+#include "a1/a1_control.hpp"
+#include "a1/a1_controllers.hpp"
 #include "a1/param_server.hpp"
 #include "a1/transform_tree.hpp"
 
@@ -20,6 +22,7 @@ namespace a1
         A1_Control control;
         A1_ParameterServer params;
         A1_TransformTree tf;
+        A1_Controllers controllers;
 
         UnitreeA1()
             : sim_data(&mj::mjSimData()),
@@ -28,6 +31,7 @@ namespace a1
               state(sim_data),
               control(sim_data),
               params(),
-              tf(state, params) {}
+              tf(state, params),
+              controllers(state, control, params) {}
     };
 }

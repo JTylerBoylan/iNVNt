@@ -5,32 +5,29 @@ using namespace nvn;
 using namespace a1;
 int main(int argc, char **argv)
 {
-    UnitreeA1 a1;
-    std::string path = std::string(INVNT_SHARE_DIR) + "/a1/model/scene.xml";
+    constexpr int N = A1_NUM_JOINTS;
+
+    const std::string path = std::string(INVNT_SHARE_DIR) + "/a1/model/scene.xml";
 
     scalar_t freq = 100; // Hz
-    auto Kp = vector_t<scalar_t, 12>::Constant(100.0);
-    auto Kd = vector_t<scalar_t, 12>::Constant(10.0);
-    auto Ki = vector_t<scalar_t, 12>::Constant(1.0);
+    auto Kp = vector_t<scalar_t, N>::Constant(100.0);
+    auto Kd = vector_t<scalar_t, N>::Constant(10.0);
+    auto Ki = vector_t<scalar_t, N>::Constant(1.0);
 
-    using A1_JointsPID = PID<scalar_t, 12, A1_ReadAllJointPositions>;
-    auto joints_pid = A1_JointsPID(a1.state.joints.positions_vec, freq, Kp, Kd, Ki);
-    static_assert(Callable<A1_JointsPID, vector_t<scalar_t, 12>>);
+    auto &sim_data = mj::mjSimData();
 
-    static_assert(Chainable<A1_JointsPID, A1_SetAllJointTorques, vector_t<scalar_t, 12>>);
-    using A1_SetAllJointPositions = Chain<A1_JointsPID, A1_SetAllJointTorques>;
-    auto set_joints_pos = A1_SetAllJointPositions(joints_pid, a1.control.joints.torques_vec);
-    static_assert(Callable<A1_SetAllJointPositions, vector_t<scalar_t, 12>>);
+    auto read_q = mj::ReadJointPositions<N>(&sim_data);
+    auto pid = PID<scalar_t, N, mj::ReadJointPositions<N>>(read_q, freq, Kp, Kd, Ki);
 
-    vector_t<radians_t, 12> target_positions = {0, 0.9, -1.8, 0, 0.9, -1.8, 0, 0.9, -1.8, 0, 0.9, -1.8};
-    auto setpoints = ReadWrite<vector_t<radians_t, 12>>(target_positions);
+    auto set_tau = mj::SetJointTorques<N>(&sim_data);
 
-    static_assert(Chainable<ReadWrite<vector_t<radians_t, 12>>, A1_SetAllJointPositions>);
-    using A1_JointsPIDControl = Chain<ReadWrite<vector_t<radians_t, 12>>, A1_SetAllJointPositions>;
-    auto pid_control = A1_JointsPIDControl(setpoints, set_joints_pos);
-    static_assert(Callable<A1_JointsPIDControl>);
+    auto set_q = [&](const vector_t<radians_t, N> &q)
+    { set_tau(pid(q)); };
 
-    a1.log << "Launching MuJoCo (Model: " << path << ")\n";
+    const vector_t<radians_t, 12> target_positions = {0, 0.9, -1.8, 0, 0.9, -1.8, 0, 0.9, -1.8, 0, 0.9, -1.8};
+
+    auto log = ConsoleLog();
+    log << "Launching MuJoCo (Model: " << path << ")\n";
     if (mj::mjLoadModel(path) && mj::mjOpenWindow())
     {
         auto &sim_data = mj::mjSimData();
@@ -39,17 +36,18 @@ int main(int argc, char **argv)
             mj::mjStep(0.01);
             mj::mjRender();
 
-            pid_control();
-            auto position = a1.state.joints.positions[FR_HIP]();
-            a1.log << "Joint position: " << position << "\n";
-            auto velocity = a1.state.joints.velocities[FR_HIP]();
-            a1.log << "Joint velocity: " << velocity << "\n";
+            set_q(target_positions);
+
+            auto position = mj::ReadJointPosition(&sim_data, FR_HIP)();
+            auto velocity = mj::ReadJointVelocity(&sim_data, FR_HIP)();
+            log << "FR Hip Joint position: " << position << "\n";
+            log << "FR Hip Joint velocity: " << velocity << "\n";
         } // sim loop
-        a1.log << "Closed MuJoCo.\n";
+        log << "Closed MuJoCo.\n";
     }
     else
     {
-        a1.log << "Failed to start MuJoCo.\n";
+        log << "Failed to start MuJoCo.\n";
         return -1;
     }
 

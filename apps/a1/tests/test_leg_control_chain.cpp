@@ -13,39 +13,39 @@ int main(int argc, char **argv)
     auto Kd = vector_t<scalar_t, 3>::Constant(10.0);
     auto Ki = vector_t<scalar_t, 3>::Constant(1.0);
 
-    using A1_JacobianMap = JacobianMap<scalar_t, 3, 3, A1_ReadJacobian3D &>;
-    auto jac_map_fr = A1_JacobianMap(a1.state.legs[FR].jacobian);
-    auto jac_map_fl = A1_JacobianMap(a1.state.legs[FL].jacobian);
-    auto jac_map_rr = A1_JacobianMap(a1.state.legs[RR].jacobian);
-    auto jac_map_rl = A1_JacobianMap(a1.state.legs[RL].jacobian);
+    using A1_JacobianMap = JacobianMap<A1_ReadToeJacobian3D>;
+    auto jac_map_fr = A1_JacobianMap(a1.state.legs[FR].toe_jacobian);
+    auto jac_map_fl = A1_JacobianMap(a1.state.legs[FL].toe_jacobian);
+    auto jac_map_rr = A1_JacobianMap(a1.state.legs[RR].toe_jacobian);
+    auto jac_map_rl = A1_JacobianMap(a1.state.legs[RL].toe_jacobian);
 
     auto set_force_fr = Chain(std::ref(jac_map_fr), std::ref(a1.control.legs[FR].joint_torques));
     auto set_force_fl = Chain(std::ref(jac_map_fl), std::ref(a1.control.legs[FL].joint_torques));
     auto set_force_rr = Chain(std::ref(jac_map_rr), std::ref(a1.control.legs[RR].joint_torques));
     auto set_force_rl = Chain(std::ref(jac_map_rl), std::ref(a1.control.legs[RL].joint_torques));
 
-    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadLegPosition>;
-    auto leg_pid_compute_fr = A1_LegPID_Compute(a1.state.legs[FR].position, freq, Kp, Kd, Ki);
-    auto leg_pid_compute_fl = A1_LegPID_Compute(a1.state.legs[FL].position, freq, Kp, Kd, Ki);
-    auto leg_pid_compute_rr = A1_LegPID_Compute(a1.state.legs[RR].position, freq, Kp, Kd, Ki);
-    auto leg_pid_compute_rl = A1_LegPID_Compute(a1.state.legs[RL].position, freq, Kp, Kd, Ki);
+    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadToePosition>;
+    auto leg_pid_compute_fr = A1_LegPID_Compute(a1.state.legs[FR].toe_position, freq, Kp, Kd, Ki);
+    auto leg_pid_compute_fl = A1_LegPID_Compute(a1.state.legs[FL].toe_position, freq, Kp, Kd, Ki);
+    auto leg_pid_compute_rr = A1_LegPID_Compute(a1.state.legs[RR].toe_position, freq, Kp, Kd, Ki);
+    auto leg_pid_compute_rl = A1_LegPID_Compute(a1.state.legs[RL].toe_position, freq, Kp, Kd, Ki);
 
-    auto leg_pid_fr = Chain(std::ref(a1.control.legs[FR].position_setpoint), leg_pid_compute_fr);
-    auto leg_pid_fl = Chain(std::ref(a1.control.legs[FL].position_setpoint), leg_pid_compute_fl);
-    auto leg_pid_rr = Chain(std::ref(a1.control.legs[RR].position_setpoint), leg_pid_compute_rr);
-    auto leg_pid_rl = Chain(std::ref(a1.control.legs[RL].position_setpoint), leg_pid_compute_rl);
+    auto leg_pid_fr = Chain(std::ref(a1.controllers.toe_ctrl[FR].pos_setpoint), leg_pid_compute_fr);
+    auto leg_pid_fl = Chain(std::ref(a1.controllers.toe_ctrl[FL].pos_setpoint), leg_pid_compute_fl);
+    auto leg_pid_rr = Chain(std::ref(a1.controllers.toe_ctrl[RR].pos_setpoint), leg_pid_compute_rr);
+    auto leg_pid_rl = Chain(std::ref(a1.controllers.toe_ctrl[RL].pos_setpoint), leg_pid_compute_rl);
 
-    auto stance_cond_fr = Branch(std::ref(a1.control.legs[FR].is_in_stance),
-                                 std::ref(a1.control.legs[FR].force_setpoint),
+    auto stance_cond_fr = Branch(std::ref(a1.controllers.toe_ctrl[FR].is_in_stance),
+                                 std::ref(a1.controllers.toe_ctrl[FR].force_setpoint),
                                  std::move(leg_pid_fr));
-    auto stance_cond_fl = Branch(std::ref(a1.control.legs[FL].is_in_stance),
-                                 std::ref(a1.control.legs[FL].force_setpoint),
+    auto stance_cond_fl = Branch(std::ref(a1.controllers.toe_ctrl[FL].is_in_stance),
+                                 std::ref(a1.controllers.toe_ctrl[FL].force_setpoint),
                                  std::move(leg_pid_fl));
-    auto stance_cond_rr = Branch(std::ref(a1.control.legs[RR].is_in_stance),
-                                 std::ref(a1.control.legs[RR].force_setpoint),
+    auto stance_cond_rr = Branch(std::ref(a1.controllers.toe_ctrl[RR].is_in_stance),
+                                 std::ref(a1.controllers.toe_ctrl[RR].force_setpoint),
                                  std::move(leg_pid_rr));
-    auto stance_cond_rl = Branch(std::ref(a1.control.legs[RL].is_in_stance),
-                                 std::ref(a1.control.legs[RL].force_setpoint),
+    auto stance_cond_rl = Branch(std::ref(a1.controllers.toe_ctrl[RL].is_in_stance),
+                                 std::ref(a1.controllers.toe_ctrl[RL].force_setpoint),
                                  std::move(leg_pid_rl));
 
     auto leg_control_fr = Chain(std::move(stance_cond_fr), set_force_fr);
@@ -67,18 +67,18 @@ int main(int argc, char **argv)
 
             translation3d_t toe_position_left = {0.0, A1_LS, z_pos};
             translation3d_t toe_position_right = {0.0, -A1_LS, z_pos};
-            a1.control.legs[FR].position_setpoint(toe_position_right);
-            a1.control.legs[FL].position_setpoint(toe_position_left);
-            a1.control.legs[RR].position_setpoint(toe_position_right);
-            a1.control.legs[RL].position_setpoint(toe_position_left);
+            a1.controllers.toe_ctrl[FR].pos_setpoint(toe_position_right);
+            a1.controllers.toe_ctrl[FL].pos_setpoint(toe_position_left);
+            a1.controllers.toe_ctrl[RR].pos_setpoint(toe_position_right);
+            a1.controllers.toe_ctrl[RL].pos_setpoint(toe_position_left);
 
             if (a1.clock() > 5.0 && a1.clock() < 5.05)
             {
                 a1.log << "Switching Front Legs to Force Mode!\n";
-                a1.control.legs[FR].is_in_stance(true);
-                a1.control.legs[FL].is_in_stance(true);
-                a1.control.legs[FR].force_setpoint({100.0, 0.0, -100.0});
-                a1.control.legs[FL].force_setpoint({100.0, 0.0, -100.0});
+                a1.controllers.toe_ctrl[FR].is_in_stance(true);
+                a1.controllers.toe_ctrl[FL].is_in_stance(true);
+                a1.controllers.toe_ctrl[FR].force_setpoint({100.0, 0.0, -100.0});
+                a1.controllers.toe_ctrl[FL].force_setpoint({100.0, 0.0, -100.0});
             }
 
             // Run OSC
