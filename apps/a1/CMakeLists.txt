@@ -24,6 +24,9 @@ target_link_libraries(test_leg_control PRIVATE iNVNt)
 add_executable(test_leg_control_chain tests/test_leg_control_chain.cpp)
 target_link_libraries(test_leg_control_chain PRIVATE iNVNt)
 
+add_executable(test_tfs tests/test_tfs.cpp)
+target_link_libraries(test_tfs PRIVATE iNVNt)
+
 # Copy mujoco model into share directory
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/model/"
      DESTINATION "${INVNT_SHARE_DIR}/${PROJECT_NAME}/model/")

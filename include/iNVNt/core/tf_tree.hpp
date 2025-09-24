@@ -49,10 +49,33 @@ namespace nvn
     };
 
     using TransformTreeGraph = DirectedAcyclicGraph<ITransform3D>;
-    using TransformPath = DAGPathSearchResult<ITransform3D>;
     using TransformPathSearch = DAGPathSearch<ITransform3D>;
-    using TransformPathCache = std::unordered_map<std::pair<index_t, index_t>, TransformPath, IndexPairHash>;
+    struct TransformPath final : DAGPathSearchResult<ITransform3D>
+    {
+        TransformPath() = default;
 
+        TransformPath(DAGPathSearchResult<ITransform3D> &&dag)
+            : DAGPathSearchResult(std::forward<DAGPathSearchResult<ITransform3D>>(dag)) {}
+
+        inline transform3d_t operator()() const
+        {
+            if (up.empty() || down.empty())
+                return transform3d_t::Identity(); // change this to something identifiable
+
+            transform3d_t result = transform3d_t::Identity();
+            for (auto it = up.cbegin(); it != up.cend() - 1; ++it)
+            {
+                result = result * (*it)->transform().inverse();
+            }
+            for (auto it = down.cbegin(); it != down.cend(); ++it)
+            {
+                result = result * (*it)->transform();
+            }
+            return result;
+        }
+    };
+
+    using TransformPathCache = std::unordered_map<std::pair<index_t, index_t>, TransformPath, IndexPairHash>;
     struct TransformTree
     {
         TransformPathSearch search;
@@ -88,19 +111,4 @@ namespace nvn
             cache[{A, B}] = path;
         }
     };
-
-    inline transform3d_t toTransform(const TransformPath &path)
-    {
-        transform3d_t result = transform3d_t::Identity();
-        for (auto it = path.up.cbegin(); it != path.up.cend() - 1; ++it)
-        {
-            result = result * (*it)->transform().inverse();
-        }
-        for (auto it = path.down.cbegin(); it != path.down.cend(); ++it)
-        {
-            result = result * (*it)->transform();
-        }
-        return result;
-    }
-
 }

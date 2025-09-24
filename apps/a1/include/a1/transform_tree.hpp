@@ -13,15 +13,24 @@ namespace a1
     using A1_OrientationTransform = Transform3D<IdentityTranslation3D, TypedParam<quaternion_t> &>;
     using A1_LinkJointTransform = Transform3D<TypedParam<translation3d_t> &, A1_ReadJointQuaternion &>;
 
-    struct A1_TransformTree final : TransformTree
+    struct A1_TransformTree
     {
         std::unique_ptr<TransformTreeGraph> graph;
-        std::unordered_map<std::string, std::size_t> tf_name_map;
+        TransformTree base;
+        std::unordered_map<std::string, index_t> tf_name_map;
+
+        inline TransformPath operator()(const std::string &nameA, const std::string &nameB)
+        {
+            if (tf_name_map.find(nameA) == tf_name_map.end() ||
+                tf_name_map.find(nameB) == tf_name_map.end())
+                throw std::runtime_error("Error: Invalid transform names (" + nameA + " or " + nameB + ")");
+            return base.lookup(tf_name_map.at(nameA), tf_name_map.at(nameB));
+        }
 
         A1_TransformTree(const A1_State &state,
                          const A1_ParameterServer &params)
             : graph(std::make_unique<TransformTreeGraph>()),
-              TransformTree(graph.get())
+              base(graph.get())
         {
             // Read joint quaternion
             auto fr_abduct_quaternion = A1_ReadJointQuaternion(state.joints.positions[FR_ABDUCT]);
@@ -83,7 +92,7 @@ namespace a1
 
             // Transform frames
             tf_name_map["world"] = graph->addNode(tf_world);
-            tf_name_map["base_link"] = graph->addNode(tf_world_body);
+            tf_name_map["base_link"] = graph->addNode(tf_world_body, tf_name_map["world"]);
             tf_name_map["fr_link"] = graph->addNode(tf_body_fr, tf_name_map["base_link"]);
             tf_name_map["fr_abduct"] = graph->addNode(tf_ll_abduct, tf_name_map["fr_link"]);
             tf_name_map["fr_shoulder"] = graph->addNode(tf_abduct_shoulder_fr, tf_name_map["fr_abduct"]);

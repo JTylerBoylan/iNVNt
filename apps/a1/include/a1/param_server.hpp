@@ -27,7 +27,7 @@ namespace a1
             setParamValue("abduction_orientation", quaternion_t{+0.5, -0.5, +0.5, -0.5});
             setParamValue("hip_orientation", quaternion_t{+0.5, -0.5, -0.5, +0.5});
             setParamValue("knee_orientation", quaternion_t{+1.0, +0.0, +0.0, +0.0});
-            setParamValue("toe_orientation", quaternion_t{+0.5, +0.5, -0.5, -0.5});
+            setParamValue("toe_orientation", quaternion_t{+0.5, +0.5, -0.5, -0.5}); // may be incorrect
             setParamValue("shoulder_length", meters_t{0.08505});
             setParamValue("thigh_length", meters_t{0.2});
             setParamValue("calf_length", meters_t{0.2});
