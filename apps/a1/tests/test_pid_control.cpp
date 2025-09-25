@@ -17,12 +17,12 @@ int main(int argc, char **argv)
     auto &sim_data = mj::mjSimData();
 
     auto read_q = mj::ReadJointPositions<N>(&sim_data);
-    auto pid = PID<scalar_t, N, mj::ReadJointPositions<N>>(read_q, freq, Kp, Kd, Ki);
+    auto compute_pid = ComputePIDControl<scalar_t, N, PID>(freq, Kp, Kd, Ki);
 
     auto set_tau = mj::SetJointTorques<N>(&sim_data);
 
     auto set_q = [&](const vector_t<radians_t, N> &q)
-    { set_tau(pid(q)); };
+    { set_tau(compute_pid(q, read_q())); };
 
     const vector_t<radians_t, 12> target_positions = {0, 0.9, -1.8, 0, 0.9, -1.8, 0, 0.9, -1.8, 0, 0.9, -1.8};
 

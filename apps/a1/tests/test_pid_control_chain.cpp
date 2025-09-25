@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     auto Kd = vector_t<scalar_t, 12>::Constant(10.0);
     auto Ki = vector_t<scalar_t, 12>::Constant(1.0);
 
-    using A1_JointsPID = PID<scalar_t, 12, A1_ReadAllJointPositions>;
+    using A1_JointsPID = PIDControl<scalar_t, 12, PID, A1_ReadAllJointPositions>;
     auto joints_pid = A1_JointsPID(a1.state.joints.positions_vec, freq, Kp, Kd, Ki);
     static_assert(Callable<A1_JointsPID, vector_t<scalar_t, 12>>);
 

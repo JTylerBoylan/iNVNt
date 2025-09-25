@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     auto set_force_rr = Chain(std::ref(jac_map_rr), std::ref(a1.control.legs[RR].joint_torques));
     auto set_force_rl = Chain(std::ref(jac_map_rl), std::ref(a1.control.legs[RL].joint_torques));
 
-    using A1_LegPID_Compute = PID<scalar_t, 3, A1_ReadToePosition>;
+    using A1_LegPID_Compute = PIDControl<scalar_t, 3, PID, A1_ReadToePosition>;
     auto leg_pid_compute_fr = A1_LegPID_Compute(a1.state.legs[FR].toe_position, freq, Kp, Kd, Ki);
     auto leg_pid_compute_fl = A1_LegPID_Compute(a1.state.legs[FL].toe_position, freq, Kp, Kd, Ki);
     auto leg_pid_compute_rr = A1_LegPID_Compute(a1.state.legs[RR].toe_position, freq, Kp, Kd, Ki);

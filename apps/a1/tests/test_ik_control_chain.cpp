@@ -20,7 +20,7 @@ int main(int argc, char **argv)
         A1_LegPositionSetpoint({0.0, +A1_DEFAULT_YOFF, -A1_DEFAULT_HEIGHT})
     });
 
-    using A1_LegJointsPID = PID<scalar_t, 3, A1_ReadLegJointPositions>;
+    using A1_LegJointsPID = PIDControl<scalar_t, 3, PID, A1_ReadLegJointPositions>;
     auto leg_joints_pid_fr = A1_LegJointsPID(a1.state.legs[FR].joint_positions, freq, Kp, Kd, Ki);
     auto leg_joints_pid_fl = A1_LegJointsPID(a1.state.legs[FL].joint_positions, freq, Kp, Kd, Ki);
     auto leg_joints_pid_rr = A1_LegJointsPID(a1.state.legs[RR].joint_positions, freq, Kp, Kd, Ki);
